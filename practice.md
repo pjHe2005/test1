@@ -8,7 +8,70 @@
 
 后续协助本仓库进行 Git 操作时，每次调整远程地址、SSH 配置、密钥路径或操作方法，都同步更新本文件。记录可直接复制的命令、修改原因和验证结果；尚未执行或尚未验证的步骤明确标注，不能写成已经成功。
 
+## 报错记录：提交说明为空（2026-10-15）
+
+报错原文：
+
+```text
+Aborting commit due to empty commit message.
+```
+
+含义：提交说明为空，Git 取消了本次提交，没有创建新的 commit。已暂存的修改仍然保留，不需要仅因这个报错重新执行 `git add`。
+
+常见触发方式：只执行 `git commit` 后进入编辑器，没有填写有效说明就退出。提交说明中的注释行（默认以 `#` 开头）不算有效说明。
+
+解决方法：通过 `-m` 明确提供非空的提交说明，再推送：
+
+```bash
+git commit -m "更新推送说明和文档维护约定"
+git push
+```
+
+如果之后又修改了文件，需先暂存那些新的修改，才能包含在本次提交中。
+
+用户反馈：按上述方法操作后已解决。此后新增的本条笔记本身尚需暂存、提交和推送，才会出现在 GitHub。
+
 ## 日常上传速查
+
+### 让短命令 ssh -T git@github.com 也使用 443 端口
+
+`core.sshCommand` 只影响 Git 操作，不影响直接运行的 `ssh`。因此短命令仍可能连接 22 端口并失败，不能据此判断已有 Git 配置失效。
+
+已检查 `C:\Users\冷锋过境\.ssh\config` 存在其他服务器配置，编辑时应保留原内容，只在末尾追加 GitHub 配置。下面是待用户执行验证的步骤：
+
+```bash
+nano "$HOME/.ssh/config"
+```
+
+在文件末尾追加（以下为 SSH 配置内容，不是终端命令）：
+
+```sshconfig
+Host github.com
+    HostName ssh.github.com
+    User git
+    Port 443
+    IdentityFile C:/Users/冷锋过境/.ssh/git_ed25519
+    IdentitiesOnly yes
+    UserKnownHostsFile C:/Users/冷锋过境/.ssh/known_hosts
+```
+
+Nano 保存方式：`Ctrl+O`，回车确认文件名，再 `Ctrl+X` 退出。
+
+测试：
+
+```bash
+ssh -T git@github.com
+```
+
+若仍显示 `port 22`，说明这段配置没有生效，可能是此前的中文默认路径问题。用下面的命令显式指定配置文件测试：
+
+```bash
+ssh -F "$HOME/.ssh/config" -T git@github.com
+```
+
+用户已执行 `ssh -F "$HOME/.ssh/config" -T git@github.com`，收到 `Hi pjHe2005! You've successfully authenticated, but GitHub does not provide shell access.`，确认显式加载配置文件的连接方式成功。今后手动测试优先使用这条命令；不带 `-F` 的短命令尚未确认成功，不要把两者混为一谈。
+
+这不保证以后任何网络条件下都能连接。代理或网络状态变化、密钥或配置文件移动/删除、公钥从 GitHub 移除，都可能导致连接失败。无需每次重新生成密钥。当前仓库的 `git push` 使用独立的 `core.sshCommand`，通常直接运行即可；新仓库不自动继承该仓库级配置。再次失败时记录完整报错，再区分网络连接、密钥认证和仓库权限问题。
 
 以下命令在 Git Bash 中、当前 `git_ex` 仓库目录内执行。
 
