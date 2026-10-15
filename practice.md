@@ -2,6 +2,57 @@
 
 日期：2026-10-14
 
+最后更新：2026-10-15
+
+## 文档维护约定
+
+后续协助本仓库进行 Git 操作时，每次调整远程地址、SSH 配置、密钥路径或操作方法，都同步更新本文件。记录可直接复制的命令、修改原因和验证结果；尚未执行或尚未验证的步骤明确标注，不能写成已经成功。
+
+## 日常上传速查
+
+以下命令在 Git Bash 中、当前 `git_ex` 仓库目录内执行。
+
+当前已检查的远程仓库：`git@github.com:pjHe2005/test1.git`。连接方式使用 `ssh.github.com:443` 和已有私钥。
+
+### 一次性修正 SSH 配置
+
+此前配置漏写目标主机，导致连接 `github.com:443` 而非 `ssh.github.com:443`。修正命令如下；正常保存后不需要每次推送都重设。现已检查本地配置完成修正，并通过只读远程查询确认 GitHub 的 `master` 与本地提交一致。
+
+```bash
+git config --local core.sshCommand 'ssh -p 443 -o Hostname=ssh.github.com -i "$HOME/.ssh/git_ed25519" -o IdentitiesOnly=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts"'
+```
+
+### 每次有新内容要上传
+
+先检查文件，选择需要保存的变化：
+
+```bash
+git status
+git diff
+```
+
+确认所有变化（包括删除）都需要保存时：
+
+```bash
+git add -A
+git commit -m "填写这次修改的说明"
+git push -u origin master
+```
+
+如果只保存指定文件，用 `git add 文件名` 代替 `git add -A`。例如只保存本笔记：
+
+```bash
+git add practice.md
+git commit -m "更新 Git 练习笔记"
+git push -u origin master
+```
+
+注意：普通 `git commit` 会提交所有已暂存变化，不仅是刚刚 `add` 的文件；提交前用 `git status` 确认范围。上述示例假设当前在 `master` 分支。成功设置上游后，日常可直接使用 `git push`。
+
+如果修改已经提交，只需要执行推送，不必重复 `add` 和 `commit`。推送成功后用 `git status` 检查本地状态，并到 GitHub 核对内容；发生报错时先保留完整输出，不要直接强制推送。
+
+历史内容提醒：之前的 `aks.docx` 提交中出现过登录凭据。如果仍有效，应更换；删除工作区文件不会清除提交历史中的内容。上传历史前确认这些内容已适当处理。
+
 三轮共完成 18 道题，涵盖状态判断、暂存、提交、撤销、忽略规则和版本回退。部分题只做了口头判断，没有实际执行。下文回退命令均为学习示例，不表示已经执行。
 
 ## 第一轮：基础状态与操作（10 题）
@@ -252,7 +303,7 @@ ssh -T -p 443 -i "$HOME/.ssh/git_ed25519" -o IdentitiesOnly=yes -o UserKnownHost
 
 不需要每次重新生成密钥或重新添加公钥。若提示输入密钥口令，输入创建密钥时设置的口令；终端不显示输入字符是正常现象。
 
-### 当前仓库的 Git 操作配置（已检查存在）
+### 当前仓库的 Git 操作配置（已检查存在，需修正目标主机）
 
 整理本记录时，已通过 `git config --local --get core.sshCommand` 确认当前 `git_ex` 仓库存在以下配置：
 
@@ -260,7 +311,9 @@ ssh -T -p 443 -i "$HOME/.ssh/git_ed25519" -o IdentitiesOnly=yes -o UserKnownHost
 ssh -p 443 -i "$HOME/.ssh/git_ed25519" -o IdentitiesOnly=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts"
 ```
 
-所以当前仓库使用 SSH 远程地址时，`git push`、`git pull`、`git fetch` 会使用这把密钥和 443 端口。不需要每次重新设置。
+上面的旧配置指定了密钥和 443 端口，但遗漏了目标主机。如果远程地址是 `git@github.com:pjHe2005/test1.git`，它会连接 `github.com:443`，而 GitHub 的 443 端口 SSH 服务应连接 `ssh.github.com:443`。之前“配置已保存即可正常推送”的判断不完整。
+
+遇到 `Connection closed ... port 443` 时，先执行下面的修正命令，将目标主机显式设置为 `ssh.github.com`。这项设置适用于当前练习仓库连接 GitHub；不要直接套用到连接其他 Git 服务的仓库。
 
 查看配置：
 
@@ -268,13 +321,41 @@ ssh -p 443 -i "$HOME/.ssh/git_ed25519" -o IdentitiesOnly=yes -o UserKnownHostsFi
 git config --local --get core.sshCommand
 ```
 
-如果以后在另一个仓库需要相同设置，进入该仓库目录后执行：
+当前仓库修正配置，或以后在另一个 GitHub 仓库需要相同设置时，进入该仓库目录后执行：
 
 ```bash
-git config --local core.sshCommand 'ssh -p 443 -i "$HOME/.ssh/git_ed25519" -o IdentitiesOnly=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts"'
+git config --local core.sshCommand 'ssh -p 443 -o Hostname=ssh.github.com -i "$HOME/.ssh/git_ed25519" -o IdentitiesOnly=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts"'
 ```
 
-这是仓库级配置，不会自动应用到其他仓库，也不会改变直接运行 `ssh -T git@github.com` 的行为。直接测试连接时，使用上面的完整命令。
+这是仓库级配置，不会自动应用到其他仓库，也不会改变直接运行 `ssh -T git@github.com` 的行为。直接测试连接时，使用上面的完整命令。后续检查已确认本地完成此配置，并成功读取远程分支，详情见下方排查记录。
+
+### 已 push 但网页看不到新修改：本次排查结果
+
+2026-10-15，通过 `git ls-remote origin refs/heads/master` 直接查询 GitHub，返回：
+
+```text
+e9877b4a97a5d0000c8c68134b08e2168f1a299c refs/heads/master
+```
+
+这与本地 `master` 的 `e9877b4`（整理 Git 练习和学习笔记）一致，说明这次提交已经在 GitHub 上。网页应查看 [test1 仓库的 master 分支](https://github.com/pjHe2005/test1/tree/master)。
+
+但本地当时还有以下已暂存、未提交的变化：
+
+```text
+A  AGENTS.md
+M  practice.md
+```
+
+因此再次执行 `git push` 不会上传这两项最新变化：push 上传的是提交，而不是暂存区或工作区。要让它们出现在 GitHub，需要先提交再推送：
+
+```bash
+git status
+git add AGENTS.md practice.md
+git commit -m "更新推送说明和文档维护约定"
+git push
+```
+
+本记录写入时，上面这次新的提交和推送尚未执行；本记录自身也需要随下一次提交一起上传。
 
 ### 认证成功以后，如何连接具体仓库
 
