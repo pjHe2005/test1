@@ -8,6 +8,49 @@
 
 后续协助本仓库进行 Git 操作时，每次调整远程地址、SSH 配置、密钥路径或操作方法，都同步更新本文件。记录可直接复制的命令、修改原因和验证结果；尚未执行或尚未验证的步骤明确标注，不能写成已经成功。
 
+## 删除本地文件夹后，从 GitHub 恢复项目
+
+删除前已检查：工作区干净，GitHub 的 `master` 与本地同为 `f35ee11`（latest）。另有被忽略的 `note.txt`，它不会通过克隆恢复；如果需要，请在删除前单独复制到仓库外。
+
+本节是上述检查后新加入的内容，必须再提交并推送，才能在重新克隆后保留：
+
+```bash
+git add practice.md
+git commit -m "记录从 GitHub 恢复项目的方法"
+git push
+```
+
+### 重新克隆到原来的路径
+
+本地 `git_ex` 文件夹删除后，在 Git Bash 中执行：
+
+```bash
+cd /c/Users/冷锋过境/Desktop
+git -c core.sshCommand='ssh -F "$HOME/.ssh/config"' clone git@github.com:pjHe2005/test1.git git_ex
+cd git_ex
+```
+
+这里最后的 `git_ex` 指定恢复后的本地文件夹名；远程仓库虽然叫 `test1`，本地仍可以叫 `git_ex`。若目标文件夹仍存在且非空，clone 会拒绝，需要先确认旧文件夹是否确实已经删除。
+
+克隆时显式指定 SSH 配置文件，是为了使用之前已验证成功的中文用户路径兼容方案。用户目录里的 `.ssh` 不在桌面 `git_ex` 内，删除项目文件夹不会删除这些密钥和 SSH 配置。
+
+### 恢复当前仓库的推送设置
+
+`core.sshCommand` 是原仓库 `.git/config` 中的本地配置，不能从 GitHub 克隆回来。进入恢复后的 `git_ex` 后重新执行：
+
+```bash
+git config --local core.sshCommand 'ssh -p 443 -o Hostname=ssh.github.com -i "$HOME/.ssh/git_ed25519" -o IdentitiesOnly=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts"'
+git status
+git remote -v
+git log -3 --oneline
+```
+
+clone 会自动创建 `origin`，并通常根据远程默认分支检出项目。若默认分支不是 `master`，用 `git switch master` 切换到本次练习的分支。以后在关联正确的分支上通常直接 `git push` 即可。
+
+恢复范围：已推送提交中的文件和历史能够恢复；未提交或未推送的内容、被忽略的 `note.txt`、仓库本地配置，不能靠普通 clone 自动恢复。远程分支会以远程跟踪分支形式出现；从未推送过的本地分支不保证恢复。
+
+当前状态：仅验证了删除前的远程提交一致；删除和重新克隆练习尚未执行。
+
 ## git push 上传什么、上传到哪里
 
 ### 上传哪些提交
