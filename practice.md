@@ -8,6 +8,112 @@
 
 后续协助本仓库进行 Git 操作时，每次调整远程地址、SSH 配置、密钥路径或操作方法，都同步更新本文件。记录可直接复制的命令、修改原因和验证结果；尚未执行或尚未验证的步骤明确标注，不能写成已经成功。
 
+## git push 上传什么、上传到哪里
+
+### 上传哪些提交
+
+`git push` 会把选定本地分支所需、但远程尚未拥有的提交和相关 Git 对象传到远程，并更新目标分支。它可能上传多个提交，不是只上传最新一次。
+
+例如推送前：
+
+```text
+本地 master：    A → B → C
+远程 master：   A
+```
+
+执行推送后：
+
+```text
+本地 master：    A → B → C
+远程 master：   A → B → C
+```
+
+本次远程获得了缺少的 B、C 两次提交。工作区和暂存区中尚未提交的修改不会上传；先 `git add`、再 `git commit`，才能将这些修改包含在后续推送中。
+
+### 当前仓库的上传目标与 origin 的含义
+
+本次已检查的远程地址为：
+
+```text
+origin → git@github.com:pjHe2005/test1.git
+```
+
+`origin` 只是远程仓库在本地的别名，不是 GitHub 用户名，也不是线上文件夹名。本地文件夹 `git_ex` 与 GitHub 仓库 `test1` 可以不同名。
+
+本地 `master` 已关联 `origin/master`。在当前配置下、当前 `master` 分支上执行 `git push`，目标是 GitHub 上 `pjHe2005/test1` 仓库的 `master` 分支。
+
+```text
+本地 git_ex / master
+        │ git push
+        ▼
+GitHub pjHe2005/test1 / master
+```
+
+下面这条命令明确推送本地 `master` 到 `origin` 的同名分支，并设置上游关联：
+
+```bash
+git push -u origin master
+```
+
+设置后，在该分支且配置不变时，通常直接执行 `git push` 即可。切换分支、修改远程或推送配置后，应重新确认目标，不能认为所有 `git push` 都固定推送到这里。
+
+查看当前目标：
+
+```bash
+git remote -v
+git branch -vv
+```
+
+`git remote -v` 显示远程仓库地址；`git branch -vv` 显示本地分支及上游关联。
+
+### 换成另一个 GitHub 仓库：可以继续叫 origin
+
+例如想从 `test1` 换到自己的 `test2` 仓库，可以修改 `origin` 对应的地址：
+
+```bash
+git remote set-url origin git@github.com:pjHe2005/test2.git
+git remote -v
+git push -u origin master
+```
+
+以上是示例，尚未执行，当前配置没有因本节笔记而改变。目标 `test2` 必须已创建且你拥有推送权限；示例按目标为空仓库考虑。若目标已有独立提交，需要先检查并处理历史关系，不要直接强制推送。
+
+修改地址后，`origin` 指向 `test2`；这不会删除原来的 `test1` 仓库。推送本地 `master` 会带上该分支所需的提交历史，不只是复制最新提交里的几个文件。
+
+### 同时保留两个远程仓库：添加另一个别名
+
+也可以保留 `origin` 指向 `test1`，另加一个名为 `second` 的远程：
+
+```bash
+git remote add second git@github.com:pjHe2005/test2.git
+git push second master
+```
+
+此时关系是：
+
+```text
+origin → pjHe2005/test1
+second → pjHe2005/test2
+```
+
+`git push second master` 明确推送到第二个仓库；此处没有加 `-u`，不会因此将本地 `master` 的上游从原来的 `origin/master` 改到 `second/master`。
+
+这也是未执行的示例，不表示已添加第二个远程。
+
+### 同一个仓库里的另一个子文件夹
+
+如果“另一个目录”指的是 `test1` 仓库内的 `notes/` 子文件夹，就不需要修改远程地址。
+
+应先在本地建立 `notes` 文件夹，将需要的文件移动进去，再暂存、提交、推送。GitHub 上会反映提交中记录的目录结构。
+
+`git push` 推送提交和分支，不能通过指定 GitHub 子文件夹地址来决定某个文件的上传位置。
+
+| 目标 | 处理方式 |
+|---|---|
+| 另一个仓库 | 更换远程地址，或添加新的远程别名 |
+| 同一个仓库内的子文件夹 | 在本地整理文件路径，再 add、commit、push |
+| 同一个仓库内的另一分支 | 明确指定推送的源分支与目标分支，和子文件夹是不同概念 |
+
 ## 报错记录：提交说明为空（2026-10-15）
 
 报错原文：
